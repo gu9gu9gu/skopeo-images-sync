@@ -42,10 +42,16 @@ jobs:
             if [[ -z "$image" || "$image" =~ ^# ]]; then
               continue
             fi
-
+            
+            #打印当前执行的镜像
+            echo "$image"
+            
             # 生成目标镜像名称
             target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$image"
-
+            
+            #打印目标镜像名称
+            echo "$target_image"
+            
             # 使用 Skopeo 复制镜像
             skopeo copy --all "docker://$image" "docker://$target_image"
             echo "Synced $image to $target_image"
