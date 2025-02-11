@@ -1,0 +1,5 @@
+docker.io/library/nginx:latest
+gcr.io/google-containers/busybox:1.35
+k8s.gcr.io/pause:3.7
+registry.k8s.io/etcd:3.5.6
+ghcr.io/your-org/your-image:latest
