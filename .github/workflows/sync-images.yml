@@ -18,27 +18,35 @@ jobs:
       # 2. 安装 Skopeo
       - name: Install Skopeo
         run: |
-          sudo apt-get update
-          sudo apt-get install -y skopeo
+          sudo apt-get update && sudo apt-get install -y skopeo
 
       # 3. 设置私有仓库认证
-      - name: Configure Skopeo credentials
+      - name: Login to private registry
         env:
-          PRIVATE_REGISTRY_USER: ${{ secrets.PRIVATE_REGISTRY_USER }}
-          PRIVATE_REGISTRY_PASSWORD: ${{ secrets.PRIVATE_REGISTRY_PASSWORD }}
+          PRIVATE_REGISTRY: ${{ secrets.PRIVATE_REGISTRY_HW }}
+          PRIVATE_REPOSITORY: ${{ secrets.PRIVATE_REPOSITORY_HW }}
+          PRIVATE_REGISTRY_USER: ${{ secrets.PRIVATE_REGISTRY_USER_HW }}
+          PRIVATE_REGISTRY_PASSWORD: ${{ secrets.PRIVATE_REGISTRY_PASSWORD_HW }}
+
         run: |
-          mkdir -p ~/.docker
-          echo '{"auths":{"your-private-registry.com":{"auth":"$(echo -n "$PRIVATE_REGISTRY_USER:$PRIVATE_REGISTRY_PASSWORD" | base64)"}}}' > ~/.docker/config.json
+          echo "$PRIVATE_REGISTRY_PASSWORD" | skopeo login --username="$PRIVATE_REGISTRY_USER" --password-stdin "$PRIVATE_REGISTRY"
 
       # 4. 同步镜像
       - name: Sync images with Skopeo
         run: |
-          while read -r image; do
-            # 生成目标镜像名称（替换为私有仓库地址）
-            target_image="your-private-registry.com/$(echo "$image" | sed 's#docker.io/##; s#gcr.io/##; s#k8s.gcr.io/##; s#registry.k8s.io/##; s#ghcr.io/##')"
+          # 读取 mirror-list.txt 文件中的每一行镜像名称
+          while IFS= read -r image; do
+            # 删除前后空格
+            image=$(echo "$image" | xargs)
+            # 跳过空行和注释行
+            if [[ -z "$image" || "$image" =~ ^# ]]; then
+              continue
+            fi
+
+            # 生成目标镜像名称
+            target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$image"
 
             # 使用 Skopeo 复制镜像
             skopeo copy --all "docker://$image" "docker://$target_image"
-
             echo "Synced $image to $target_image"
           done < mirror-list.txt
