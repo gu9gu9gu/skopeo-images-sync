@@ -33,6 +33,11 @@ jobs:
 
       # 4. 同步镜像
       - name: Sync images with Skopeo
+        env:
+          PRIVATE_REGISTRY: ${{ secrets.PRIVATE_REGISTRY_HW }}
+          PRIVATE_REPOSITORY: ${{ secrets.PRIVATE_REPOSITORY_HW }}
+          PRIVATE_REGISTRY_USER: ${{ secrets.PRIVATE_REGISTRY_USER_HW }}
+          PRIVATE_REGISTRY_PASSWORD: ${{ secrets.PRIVATE_REGISTRY_PASSWORD_HW }}
         run: |
           # 读取 mirror-list.txt 文件中的每一行镜像名称
           while IFS= read -r image; do
