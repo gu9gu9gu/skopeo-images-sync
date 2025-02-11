@@ -1,0 +1,44 @@
+name: Sync Images to Private Registry with Skopeo
+
+on:
+  schedule:
+    # 每天凌晨 2 点运行
+    - cron: '0 2 * * *'
+  workflow_dispatch: # 支持手动触发
+
+jobs:
+  sync-images:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 检出代码
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. 安装 Skopeo
+      - name: Install Skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+
+      # 3. 设置私有仓库认证
+      - name: Configure Skopeo credentials
+        env:
+          PRIVATE_REGISTRY_USER: ${{ secrets.PRIVATE_REGISTRY_USER }}
+          PRIVATE_REGISTRY_PASSWORD: ${{ secrets.PRIVATE_REGISTRY_PASSWORD }}
+        run: |
+          mkdir -p ~/.docker
+          echo '{"auths":{"your-private-registry.com":{"auth":"$(echo -n "$PRIVATE_REGISTRY_USER:$PRIVATE_REGISTRY_PASSWORD" | base64)"}}}' > ~/.docker/config.json
+
+      # 4. 同步镜像
+      - name: Sync images with Skopeo
+        run: |
+          while read -r image; do
+            # 生成目标镜像名称（替换为私有仓库地址）
+            target_image="your-private-registry.com/$(echo "$image" | sed 's#docker.io/##; s#gcr.io/##; s#k8s.gcr.io/##; s#registry.k8s.io/##; s#ghcr.io/##')"
+
+            # 使用 Skopeo 复制镜像
+            skopeo copy --all "docker://$image" "docker://$target_image"
+
+            echo "Synced $image to $target_image"
+          done < mirror-list.txt
