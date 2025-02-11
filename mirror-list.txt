@@ -1,7 +1,7 @@
 docker.io/bitnami/redis-exporter:1.66.0
 #docker.io/enix/x509-certificate-exporter:
 docker.io/feiyu563/prometheus-alert:v4.9.1
-docker.io/gaoyuan98/dameng_exporter:v1.0.6
+#docker.io/gaoyuan98/dameng_exporter:v1.0.6 
 docker.io/grafana/grafana:11.3.0
 docker.io/grafana/loki:3.2.0
 docker.io/grafana/loki-docker-driver:3.2.0
