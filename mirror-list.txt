@@ -1,7 +1,7 @@
 docker.io/bitnami/redis-exporter:1.66.0
 #docker.io/enix/x509-certificate-exporter:
 docker.io/feiyu563/prometheus-alert:v4.9.1
-#docker.io/gaoyuan98/dameng_exporter:v1.0.6 
+#docker.io/gaoyuan98/dameng_exporter:v1.0.6
 docker.io/grafana/grafana:11.3.0
 docker.io/grafana/loki:3.2.0
 docker.io/grafana/loki-docker-driver:3.2.0
@@ -16,7 +16,7 @@ docker.io/prom/node-exporter:v1.8.2
 docker.io/prom/prometheus:v2.55.1
 docker.io/prom/pushgateway:v1.10.0
 docker.io/ribbybibby/ssl-exporter:2.4.3
-docker.io/thanosio/thanos:0.36.1
+#docker.io/thanosio/thanos:0.36.1
 gcr.io/gcr.io/cadvisor/cadvisor:v0.49.1
 #ghcr.io/resmoio/kubernetes-event-exporter:
 #quay.io/coreos/kube-state-metrics:
