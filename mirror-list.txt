@@ -20,5 +20,5 @@ docker.io/ribbybibby/ssl-exporter:2.4.3
 gcr.io/cadvisor/cadvisor:v0.49.1
 #ghcr.io/resmoio/kubernetes-event-exporter:
 #quay.io/coreos/kube-state-metrics:
-quay.io/thanos/thanos:0.36.1
+#quay.io/thanos/thanos:0.36.1
 #registry.cn-hangzhou.aliyuncs.com/dameng_exporter/dameng_exporter:
