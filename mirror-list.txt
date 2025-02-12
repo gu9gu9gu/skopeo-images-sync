@@ -17,7 +17,7 @@ docker.io/prom/prometheus:v2.55.1
 docker.io/prom/pushgateway:v1.10.0
 docker.io/ribbybibby/ssl-exporter:2.4.3
 #docker.io/thanosio/thanos:0.36.1
-gcr.io/gcr.io/cadvisor/cadvisor:v0.49.1
+gcr.io/cadvisor/cadvisor:v0.49.1
 #ghcr.io/resmoio/kubernetes-event-exporter:
 #quay.io/coreos/kube-state-metrics:
 quay.io/thanos/thanos:0.36.1
