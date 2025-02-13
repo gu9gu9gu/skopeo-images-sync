@@ -20,17 +20,20 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      images: ${{ steps.process_mirror_list.outputs.images }}
+      batches: ${{ steps.process_mirror_list.outputs.batches }}
 
     steps:
     # 1. 检出代码
     - name: Checkout repository
       uses: actions/checkout@v3
-
-    # 2. 安装 Skopeo
+    # 2. 安装 必要的软件包
     - name: Install Skopeo
       run: |
-        sudo apt-get update && sudo apt-get install -y skopeo jq dos2unix
+        sudo apt-get update && \
+        sudo apt-get install -y \
+                     skopeo \
+                     jq \
+                     dos2unix
 
     # 3. 处理 mirror-list.txt 文件
     - name: Process mirror-list.txt
@@ -49,16 +52,23 @@ jobs:
         mapfile -t images < processed-mirror-list.txt
         echo "Processed images: ${images[@]}"
 
-        # 将数组转换为 JSON 格式并输出
-        images_json=$(echo "${images[@]}" | jq -R -s -c 'split(" ")')
-        echo "images=$images_json" >> $GITHUB_OUTPUT
+        # 将镜像列表分割成每批10个
+        batch_size=10
+        batches=()
+        for ((i=0; i<${#images[@]}; i+=batch_size)); do
+          batches+=("${images[@]:i:batch_size}")
+        done
+
+        # 将批次转换为 JSON 格式并输出
+        batches_json=$(printf '%s\n' "${batches[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
 
   sync-images:
     needs: setup
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: ${{ fromJson(needs.setup.outputs.images) }}
+        batch: ${{ fromJson(needs.setup.outputs.batches) }}
 
     steps:
     # 1. 设置私有仓库认证
@@ -68,19 +78,22 @@ jobs:
 
     # 2. 同步镜像
     - name: Sync images with Skopeo
-      if: ${{ !contains(matrix.image, '#') && matrix.image != '' }}
       run: |
-        # 删除前后空格
-        image=$(echo "${{ matrix.image }}" | xargs)
+        for image in ${{ join(matrix.batch, ' ') }}; do
+          if [[ -n "$image" && ! "$image" =~ ^# ]]; then
+            # 删除前后空格
+            image=$(echo "$image" | xargs)
 
-        # 生成目标镜像名称
-        target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$(basename "$image")"
+            # 生成目标镜像名称
+            target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$(basename "$image")"
 
-        # 使用 Skopeo 复制镜像
-        skopeo copy -a \
-        --insecure-policy \
-        --src-tls-verify=false \
-        --dest-tls-verify=false \
-        "docker://$image" \
-        "docker://$target_image"
-        echo "Synced $image to $target_image"
+            # 使用 Skopeo 复制镜像
+            skopeo copy -a \
+            --insecure-policy \
+            --src-tls-verify=false \
+            --dest-tls-verify=false \
+            "docker://$image" \
+            "docker://$target_image"
+            echo "Synced $image to $target_image"
+          fi
+        done
