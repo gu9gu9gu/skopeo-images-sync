@@ -19,9 +19,6 @@ env:
 jobs:
   sync-images:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        image: ${{ fromFile('mirror-list.txt') }}
 
     steps:
     # 1. 检出代码
@@ -40,6 +37,7 @@ jobs:
 
     # 4. 处理 mirror-list.txt 文件
     - name: Process mirror-list.txt
+      id: process_mirror_list
       run: |
         # 检查并转换文件编码格式为UTF-8
         iconv -f $(file -bi mirror-list.txt | grep -Po 'charset=\K[^;]+') -t UTF-8 mirror-list.txt -o mirror-list.txt
@@ -49,6 +47,11 @@ jobs:
 
         # 删除每一行镜像前后空格，跳过空行及注释行
         awk '{gsub(/^[ \t]+|[ \t]+$/, ""); if ($0 != "" && $0 !~ /^#/) print $0}' mirror-list.txt > processed-mirror-list.txt
+
+        # 读取 processed-mirror-list.txt 文件内容并转换为数组
+        mapfile -t images < processed-mirror-list.txt
+        echo "Processed images: ${images[@]}"
+        echo "::set-output name=images::${images[*]}"
 
     # 5. 同步镜像
     - name: Sync images with Skopeo
@@ -72,4 +75,4 @@ jobs:
         IMAGE: ${{ matrix.image }}
       with:
         matrix:
-          image: ${{ fromFile('processed-mirror-list.txt') }}
+          image: ${{ fromJSON(steps.process_mirror_list.outputs.images) }}
