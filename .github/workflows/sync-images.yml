@@ -1,68 +1,75 @@
+# 定义工作流名称
 name: Sync Images to Private Registry with Skopeo
 
+# 定义触发条件
 on:
   schedule:
-    # 每天凌晨 2 点运行
-    - cron: '0 2 * * *'
-  workflow_dispatch: # 支持手动触发
+  # 每天凌晨 2 点运行
+  - cron: '0 2 * * *'
+  workflow_dispatch:
+    # 支持手动触发
+
+    # 定义环境变量
+env:
+  PRIVATE_REGISTRY: ${{ secrets.PRIVATE_REGISTRY_HW }}
+  PRIVATE_REPOSITORY: ${{ secrets.PRIVATE_REPOSITORY_HW }}
+  PRIVATE_REGISTRY_USER: ${{ secrets.PRIVATE_REGISTRY_USER_HW }}
+  PRIVATE_REGISTRY_PASSWORD: ${{ secrets.PRIVATE_REGISTRY_PASSWORD_HW }}
 
 jobs:
   sync-images:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: ${{ fromFile('mirror-list.txt') }}
 
     steps:
-      # 1. 检出代码
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    # 1. 检出代码
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      # 2. 安装 Skopeo
-      - name: Install Skopeo
-        run: |
-          sudo apt-get update && sudo apt-get install -y skopeo
+    # 2. 安装 Skopeo
+    - name: Install Skopeo
+      run: |
+        sudo apt-get update && sudo apt-get install -y skopeo
 
-      # 3. 设置私有仓库认证
-      - name: Login to private registry
-        env:
-          PRIVATE_REGISTRY: ${{ secrets.PRIVATE_REGISTRY_HW }}
-          PRIVATE_REPOSITORY: ${{ secrets.PRIVATE_REPOSITORY_HW }}
-          PRIVATE_REGISTRY_USER: ${{ secrets.PRIVATE_REGISTRY_USER_HW }}
-          PRIVATE_REGISTRY_PASSWORD: ${{ secrets.PRIVATE_REGISTRY_PASSWORD_HW }}
+    # 3. 设置私有仓库认证
+    - name: Login to private registry
+      run: |
+        echo "$PRIVATE_REGISTRY_PASSWORD" | skopeo login --username="$PRIVATE_REGISTRY_USER" --password-stdin "$PRIVATE_REGISTRY"
 
-        run: |
-          echo "$PRIVATE_REGISTRY_PASSWORD" | skopeo login --username="$PRIVATE_REGISTRY_USER" --password-stdin "$PRIVATE_REGISTRY"
+    # 4. 处理 mirror-list.txt 文件
+    - name: Process mirror-list.txt
+      run: |
+        # 检查并转换文件编码格式为UTF-8
+        iconv -f $(file -bi mirror-list.txt | grep -Po 'charset=\K[^;]+') -t UTF-8 mirror-list.txt -o mirror-list.txt
 
-      # 4. 同步镜像
-      - name: Sync images with Skopeo
-        env:
-          PRIVATE_REGISTRY: ${{ secrets.PRIVATE_REGISTRY_HW }}
-          PRIVATE_REPOSITORY: ${{ secrets.PRIVATE_REPOSITORY_HW }}
-          PRIVATE_REGISTRY_USER: ${{ secrets.PRIVATE_REGISTRY_USER_HW }}
-          PRIVATE_REGISTRY_PASSWORD: ${{ secrets.PRIVATE_REGISTRY_PASSWORD_HW }}
-        run: |
-          # 读取 mirror-list.txt 文件中的每一行镜像名称
-          while IFS= read -r image; do
-            # 删除前后空格
-            image=$(echo "$image" | xargs)
-            # 跳过空行和注释行
-            if [[ -z "$image" || "$image" =~ ^# ]]; then
-              continue
-            fi
+        # 将文件换行模式转换为Linux LF
+        dos2unix mirror-list.txt
 
-            #打印当前执行的镜像
-            echo "$image"
+        # 删除每一行镜像前后空格，跳过空行及注释行
+        awk '{gsub(/^[ \t]+|[ \t]+$/, ""); if ($0 != "" && $0 !~ /^#/) print $0}' mirror-list.txt > processed-mirror-list.txt
 
-            # 生成目标镜像名称
-            target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$image"
+    # 5. 同步镜像
+    - name: Sync images with Skopeo
+      if: ${{ !contains(matrix.image, '#') && matrix.image != '' }}
+      run: |
+        # 删除前后空格
+        image=$(echo "$IMAGE" | xargs)
 
-            #打印目标镜像名称
-            echo "$target_image"
+        # 生成目标镜像名称
+        target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$image"
 
-            # 使用 Skopeo 复制镜像
-            skopeo copy -a \
-            --insecure-policy \
-            --src-tls-verify=false \
-            --dest-tls-verify=false \
-            "docker://$image" \
-            "docker://$target_image"
-            echo "Synced $image to $target_image"
-          done < mirror-list.txt
+        # 使用 Skopeo 复制镜像
+        skopeo copy -a \
+        --insecure-policy \
+        --src-tls-verify=false \
+        --dest-tls-verify=false \
+        "docker://$image" \
+        "docker://$target_image"
+        echo "Synced $image to $target_image"
+      env:
+        IMAGE: ${{ matrix.image }}
+      with:
+        matrix:
+          image: ${{ fromFile('processed-mirror-list.txt') }}
