@@ -30,7 +30,7 @@ jobs:
     # 2. 安装 Skopeo
     - name: Install Skopeo
       run: |
-        sudo apt-get update && sudo apt-get install -y skopeo
+        sudo apt-get update && sudo apt-get install -y skopeo jq dos2unix
 
     # 3. 处理 mirror-list.txt 文件
     - name: Process mirror-list.txt
