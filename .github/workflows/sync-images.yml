@@ -30,14 +30,9 @@ jobs:
     # 2. 安装 Skopeo
     - name: Install Skopeo
       run: |
-        sudo apt-get update && sudo apt-get install -y skopeo jq dos2unix
+        sudo apt-get update && sudo apt-get install -y skopeo
 
-    # 3. 设置私有仓库认证
-    - name: Login to private registry
-      run: |
-        echo "$PRIVATE_REGISTRY_PASSWORD" | skopeo login --username="$PRIVATE_REGISTRY_USER" --password-stdin "$PRIVATE_REGISTRY"
-
-    # 4. 处理 mirror-list.txt 文件
+    # 3. 处理 mirror-list.txt 文件
     - name: Process mirror-list.txt
       id: process_mirror_list
       run: |
@@ -66,7 +61,12 @@ jobs:
         image: ${{ fromJson(needs.setup.outputs.images) }}
 
     steps:
-    # 1. 同步镜像
+    # 1. 设置私有仓库认证
+    - name: Login to private registry
+      run: |
+        echo "$PRIVATE_REGISTRY_PASSWORD" | skopeo login --username="$PRIVATE_REGISTRY_USER" --password-stdin "$PRIVATE_REGISTRY"
+
+    # 2. 同步镜像
     - name: Sync images with Skopeo
       if: ${{ !contains(matrix.image, '#') && matrix.image != '' }}
       run: |
