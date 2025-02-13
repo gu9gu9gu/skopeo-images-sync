@@ -17,8 +17,10 @@ env:
   PRIVATE_REGISTRY_PASSWORD: ${{ secrets.PRIVATE_REGISTRY_PASSWORD_HW }}
 
 jobs:
-  sync-images:
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.process_mirror_list.outputs.images }}
 
     steps:
     # 1. 检出代码
@@ -28,7 +30,7 @@ jobs:
     # 2. 安装 Skopeo
     - name: Install Skopeo
       run: |
-        sudo apt-get update && sudo apt-get install -y skopeo
+        sudo apt-get update && sudo apt-get install -y skopeo jq dos2unix
 
     # 3. 设置私有仓库认证
     - name: Login to private registry
@@ -51,17 +53,28 @@ jobs:
         # 读取 processed-mirror-list.txt 文件内容并转换为数组
         mapfile -t images < processed-mirror-list.txt
         echo "Processed images: ${images[@]}"
-        echo "::set-output name=images::${images[*]}"
 
-    # 5. 同步镜像
+        # 将数组转换为 JSON 格式并输出
+        images_json=$(echo "${images[@]}" | jq -R -s -c 'split(" ")')
+        echo "images=$images_json" >> $GITHUB_OUTPUT
+
+  sync-images:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: ${{ fromJson(needs.setup.outputs.images) }}
+
+    steps:
+    # 1. 同步镜像
     - name: Sync images with Skopeo
       if: ${{ !contains(matrix.image, '#') && matrix.image != '' }}
       run: |
         # 删除前后空格
-        image=$(echo "$IMAGE" | xargs)
+        image=$(echo "${{ matrix.image }}" | xargs)
 
         # 生成目标镜像名称
-        target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$image"
+        target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$(basename "$image")"
 
         # 使用 Skopeo 复制镜像
         skopeo copy -a \
@@ -71,8 +84,3 @@ jobs:
         "docker://$image" \
         "docker://$target_image"
         echo "Synced $image to $target_image"
-      env:
-        IMAGE: ${{ matrix.image }}
-      with:
-        matrix:
-          image: ${{ fromJSON(steps.process_mirror_list.outputs.images) }}
