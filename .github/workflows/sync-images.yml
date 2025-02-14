@@ -83,6 +83,7 @@ jobs:
 
     # 2. 同步镜像
     - name: Sync images with Skopeo
+      continue-on-error: true  # 允许单个镜像失败不影响整个任务
       run: |
         for image in ${{ join(matrix.batch, ' ') }}; do
           if [[ -n "$image" && ! "$image" =~ ^# ]]; then
@@ -95,7 +96,6 @@ jobs:
             # 使用 Skopeo 复制镜像
             skopeo copy -a \
             --retry-times 3 \          # 添加重试机制
-            --command-timeout 300s \   # 设置单次操作超时时间
             --insecure-policy \
             --src-tls-verify=false \
             --dest-tls-verify=false \
