@@ -71,9 +71,9 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 2 # 限制同时运行的批次数量
       matrix:
         batch: ${{ fromJson(needs.setup.outputs.batches) }}
-        max-parallel: 2 # 限制同时运行的批次数量
 
     steps:
     # 1. 设置私有仓库认证
