@@ -95,7 +95,7 @@ jobs:
 
             # 使用 Skopeo 复制镜像
             skopeo copy -a \
-            --retry-times 3 \          # 添加重试机制
+            --retry-times 3 \
             --insecure-policy \
             --src-tls-verify=false \
             --dest-tls-verify=false \
