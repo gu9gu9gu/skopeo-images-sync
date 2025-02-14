@@ -1,5 +1,7 @@
 #查询可用tags命令
 #skopeo list-tags docker://docker.io/johndoe/myapp
+#监控相关
+#prometheus系列
 docker.io/bitnami/redis-exporter:1.66.0
 #docker.io/enix/x509-certificate-exporter:
 docker.io/feiyu563/prometheus-alert:v4.9.1
@@ -45,3 +47,8 @@ docker.io/apolloconfig/apollo-portal:2.1.0
 docker.io/apolloconfig/apollo-adminservice:2.0.0
 docker.io/apolloconfig/apollo-configservice:2.0.0
 docker.io/apolloconfig/apollo-portal:2.0.0
+#多架构镜像构建
+docker.io/moby/buildkit:buildx-stable-1
+docker.io/tonistiigi/binfmt:latest
+#缓存数据库
+docker.io/redis:7.2.4

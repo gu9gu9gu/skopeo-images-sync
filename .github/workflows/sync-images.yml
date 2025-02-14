@@ -91,7 +91,9 @@ jobs:
             image=$(echo "$image" | xargs)
 
             # 生成目标镜像名称
-            target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$(basename "$image")"
+            #target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$(basename "$image")"
+            #使用原始镜像名称，华为云支持"/"分隔的镜像名称"
+            target_image="$PRIVATE_REGISTRY/$PRIVATE_REPOSITORY/$image"
 
             # 使用 Skopeo 复制镜像
             skopeo copy -a \
