@@ -55,8 +55,8 @@ jobs:
         mapfile -t images < processed-mirror-list.txt
         echo "Processed images: ${images[@]}"
 
-        # 将镜像列表分割成每批10个
-        batch_size=10
+        # 将镜像列表分割成每批5个
+        batch_size=5
         batches=()
         for ((i=0; i<${#images[@]}; i+=batch_size)); do
           batches+=("${images[@]:i:batch_size}")
@@ -67,11 +67,13 @@ jobs:
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
 
   sync-images:
+    timeout-minutes: 30 # 适当延长超时时间以应对较大镜像同步
     needs: setup
     runs-on: ubuntu-latest
     strategy:
       matrix:
         batch: ${{ fromJson(needs.setup.outputs.batches) }}
+        max-parallel: 2 # 限制同时运行的批次数量
 
     steps:
     # 1. 设置私有仓库认证
@@ -92,6 +94,8 @@ jobs:
 
             # 使用 Skopeo 复制镜像
             skopeo copy -a \
+            --retry-times 3 \          # 添加重试机制
+            --command-timeout 300s \   # 设置单次操作超时时间
             --insecure-policy \
             --src-tls-verify=false \
             --dest-tls-verify=false \
