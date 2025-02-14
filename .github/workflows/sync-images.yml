@@ -6,6 +6,9 @@ on:
   schedule:
   # 每天凌晨 2 点运行
   - cron: '0 2 * * *'
+  push:
+    branches:
+      - main  # 每次推送至 main 分支时运行
   workflow_dispatch:
     # 支持手动触发
 
